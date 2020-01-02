@@ -1,0 +1,237 @@
+
+1.
+1 A 1 1000
+2 B 1 340
+3 C 2 1000
+4 D 1 130
+5 E 3 360
+6 F 2 600
+7 G 3 100
+8 H 7 80
+9 I 8 40
+10 J 8 80
+11 K 7 260
+
+create table if not exists t1
+(
+id int,
+name string,
+pid int,
+price int
+)row format delimited fields terminated by ' ';
+load data local inpath '/home/hadoop/step2/t1.txt' into table t1;
+
+select
+id,
+name,
+pid,
+price
+from(
+select
+id,
+name,
+pid,
+price,
+row_number() over(distribute by pid sort by price desc) rm
+from t1)tmp
+where rm=1;
+
+------------------------------------
+2.
+1 huangbo 34 58 58
+2 xuzheng 45 87 45
+3 wangbaoqiang 76 34 89
+
+create table if not exists t2
+(
+id int,
+username string,
+math int,
+computer int,
+english int
+)row format delimited fields terminated by ' ';
+load data local inpath '/home/hadoop/step2/t2.txt' into table t2;
+
+select
+id,
+username,
+'math' course,
+math score
+from t2
+union
+select
+id,
+username,
+'computer' course,
+computer score
+from t2
+union
+select
+id,
+username,
+'english' course,
+english score
+from t2
+
+------------------------------------
+3.
+10001 3 11_20_30,11_22_34,12_23_30,13_24_36
+10002 2 11_20,11_22,12_23,13_24
+10003 1 11,12
+
+create table if not exists t3
+(
+id int,
+type_flag int,
+tags array<string>
+)
+row format delimited
+fields terminated by ' '
+collection items terminated by ',';
+load data local inpath '/home/hadoop/step2/t3.txt' into table t3;
+
+
+select
+id,
+type_flag,
+split(tag,'_')tags
+from 
+t3
+lateral view explode(tags) tags as tag
+;
+
+select
+id,
+type_flag,
+tgs[0] tag1,
+nvl(tgs[1],' ') tag2,
+nvl(tgs[2],' ') tag3
+from(
+select
+id,
+type_flag,
+split(tag,'_')tgs
+from 
+t3
+lateral view explode(tags) tags as tag) tmp
+;
+
+
+------------------------------------
+4.
+a b 1,2,3
+c d 4,5,6
+
+create table if not exists t4
+(
+rol1 string,
+rol2 string,
+tags array<int>
+)
+row format delimited
+fields terminated by ' '
+collection items terminated by ',';
+load data local inpath '/home/hadoop/step2/t4.txt' into table t4;
+
+select
+rol1,
+rol2,
+tag
+from 
+t4
+lateral view explode(tags) tags as tag
+
+
+------------------------------------
+5. 
+A a 10
+A b 12
+A c 5
+B a 8
+B c 8
+B x 1
+B n 0
+
+A a 10 2 2 2
+A b 12 1 1 1
+A c 5 3 3 3
+B a 8 1 1 1
+B c 8 2 1 1
+B x 1 3 3 2
+B n 0 4 4 3
+
+create table if not exists t5
+(
+shop_id string,
+brand string,
+money int
+)
+row format delimited
+fields terminated by ' ';
+load data local inpath '/home/hadoop/step2/t5.txt' into table t5;
+
+select
+shop_id,
+brand,
+money,
+row_number() over(distribute by shop_id sort by money desc) r,
+rank() over(distribute by shop_id sort by money desc) d,
+dense_rank() over(distribute by shop_id sort by money desc) a
+from t5
+
+------------------------------------
+6 .
+1	2018-05-01 01:00:34
+2	2018-05-01 02:12:41
+3	2018-05-02 15:31:26
+4	2018-05-02 12:40:39
+
+create table if not exists t6
+(
+id int,
+uv_time timestamp
+)
+row format delimited
+fields terminated by '\t';
+load data local inpath '/home/hadoop/step2/t6.txt' into table t6;
+
+
+select
+id,
+uv_time,
+unix_timestamp(n_time,"yyyy-mm-dd HH:MM:ss")-unix_timestamp(uv_time,"yyyy-mm-dd HH:MM:ss") diff
+from(
+select
+id,
+uv_time,
+nvl(lead(uv_time) over(sort by id),uv_time) n_time
+from t6)tmp
+
+
+
+
+------------------------------------
+7.
+
+a
+b
+c
+d
+
+create table if not exists t7
+(
+id string
+);
+load data local inpath '/home/hadoop/step2/t7.txt' into table t7;
+
+
+select
+tmp1.id,
+tmp2.id
+from
+t7 tmp1
+left join
+t7 tmp2
+where tmp1.id<tmp2.id
+
+
